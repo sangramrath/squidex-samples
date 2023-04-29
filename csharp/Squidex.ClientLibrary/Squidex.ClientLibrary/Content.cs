@@ -12,20 +12,8 @@ namespace Squidex.ClientLibrary;
 /// </summary>
 /// <typeparam name="T">The type for the data structure.</typeparam>
 /// <seealso cref="Entity" />
-public abstract class Content<T> : Entity where T : class, new()
+public abstract class Content<T> : ContentBase where T : class, new()
 {
-    private const string LinkStart = "/api/content/";
-
-    private string status = string.Empty;
-
-    /// <summary>
-    /// The new status when this content item has an unpublished, new version.
-    /// </summary>
-    /// <value>
-    /// The new status.
-    /// </value>
-    public string NewStatus { get; set; }
-
     /// <summary>
     /// Gets the data of the content item.
     /// </summary>
@@ -33,34 +21,23 @@ public abstract class Content<T> : Entity where T : class, new()
     /// The data of the content item. Cannot be replaced.
     /// </value>
     public T Data { get; } = new T();
+}
+
+/// <summary>
+/// Represents a content item.
+/// </summary>
+/// <seealso cref="Entity" />
+public abstract class ContentBase : Entity
+{
+    private const string LinkStart = "/api/content/";
 
     /// <summary>
-    /// Gets the name of the app where this content belongs to.
+    /// The new status when this content item has an unpublished, new version.
     /// </summary>
     /// <value>
-    /// The name of the app where this content belongs to.
+    /// The new status.
     /// </value>
-    public string AppName
-    {
-        get
-        {
-            return GetDetails().App;
-        }
-    }
-
-    /// <summary>
-    /// Gets the name of the schema where this content belongs to.
-    /// </summary>
-    /// <value>
-    /// The name of the app schema this content belongs to.
-    /// </value>
-    public string SchemaName
-    {
-        get
-        {
-            return GetDetails().Schema;
-        }
-    }
+    public string NewStatus { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the status of the content item.
@@ -68,17 +45,31 @@ public abstract class Content<T> : Entity where T : class, new()
     /// <value>
     /// The status of the content item.
     /// </value>
-    public string Status
-    {
-        get
-        {
-            return !string.IsNullOrEmpty(NewStatus) ? NewStatus : status;
-        }
-        set
-        {
-            status = value;
-        }
-    }
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets current status about the version currently being edited.
+    /// </summary>
+    /// <value>
+    /// The status of the content item.
+    /// </value>
+    public string EditingStatus => !string.IsNullOrWhiteSpace(NewStatus) ? NewStatus : Status;
+
+    /// <summary>
+    /// Gets the name of the app where this content belongs to.
+    /// </summary>
+    /// <value>
+    /// The name of the app where this content belongs to.
+    /// </value>
+    public string AppName => GetDetails().App;
+
+    /// <summary>
+    /// Gets the name of the schema where this content belongs to.
+    /// </summary>
+    /// <value>
+    /// The name of the app schema this content belongs to.
+    /// </value>
+    public string SchemaName => GetDetails().Schema;
 
     private (string App, string Schema) GetDetails()
     {

@@ -19,6 +19,8 @@ public sealed class AssetsSynchronizer : ISynchronizer
 
     public string Name => "Assets";
 
+    public string Description => "Synchronizes all assets and creates asset folders if they do not exist yet.";
+
     public AssetsSynchronizer(ILogger log)
     {
         this.log = log;
@@ -59,7 +61,7 @@ public sealed class AssetsSynchronizer : ISynchronizer
                 });
             }
 
-            await session.Assets.GetAllAsync(session.App, async asset =>
+            await session.Client.Assets.GetAllAsync(async asset =>
             {
                 var model = asset.ToModel();
 
@@ -141,7 +143,7 @@ public sealed class AssetsSynchronizer : ISynchronizer
 
                 var assetIndex = 0;
 
-                var results = await session.Assets.BulkUpdateAssetsAsync(session.App, request);
+                var results = await session.Client.Assets.BulkUpdateAssetsAsync(request);
 
                 foreach (var asset in model.Assets)
                 {

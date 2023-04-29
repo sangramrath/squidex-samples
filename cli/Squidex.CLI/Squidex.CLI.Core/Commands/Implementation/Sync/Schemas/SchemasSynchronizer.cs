@@ -6,6 +6,7 @@
 // ==========================================================================
 
 using Squidex.CLI.Commands.Implementation.FileSystem;
+using Squidex.CLI.Commands.Implementation.Utils;
 using Squidex.ClientLibrary.Management;
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -20,6 +21,8 @@ public sealed class SchemasSynchronizer : ISynchronizer
     public int Order => -1000;
 
     public string Name => "Schemas";
+
+    public string Description => "Synchronizes all schemas, but not the content.";
 
     public SchemasSynchronizer(ILogger log)
     {
@@ -57,7 +60,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
 
     public async Task ExportAsync(ISyncService sync, SyncOptions options, ISession session)
     {
-        var current = await session.Schemas.GetSchemasAsync(session.App);
+        var current = await session.Client.Schemas.GetSchemasAsync();
 
         var schemaMap = current.Items.ToDictionary(x => x.Id, x => x.Name);
 
@@ -65,7 +68,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
         {
             await log.DoSafeAsync($"Exporting '{schema.Name}'", async () =>
             {
-                var details = await session.Schemas.GetSchemaAsync(session.App, schema.Name);
+                var details = await session.Client.Schemas.GetSchemaAsync(schema.Name);
 
                 var model = new SchemaModel
                 {
@@ -96,7 +99,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
             return;
         }
 
-        var current = await session.Schemas.GetSchemasAsync(session.App);
+        var current = await session.Client.Schemas.GetSchemasAsync();
 
         var schemasByName = current.Items.ToDictionary(x => x.Name);
 
@@ -108,7 +111,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
                 {
                     await log.DoSafeAsync($"Schema {name} deleting", async () =>
                     {
-                        await session.Schemas.DeleteSchemaAsync(session.App, name);
+                        await session.Client.Schemas.DeleteSchemaAsync(name);
                     });
                 }
             }
@@ -123,7 +126,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
 
             await log.DoSafeAsync($"Schema {model.Name} creating", async () =>
             {
-                var created = await session.Schemas.PostSchemaAsync(session.App, model.ToCreate());
+                var created = await session.Client.Schemas.PostSchemaAsync(model.ToCreate());
 
                 schemasByName[model.Name] = created;
             });
@@ -148,7 +151,7 @@ public sealed class SchemasSynchronizer : ISynchronizer
 
             await log.DoVersionedAsync($"Schema {model.Name} updating", version, async () =>
             {
-                var result = await session.Schemas.PutSchemaSyncAsync(session.App, model.Name, model.Schema);
+                var result = await session.Client.Schemas.PutSchemaSyncAsync(model.Name, model.Schema);
 
                 return result.Version;
             });

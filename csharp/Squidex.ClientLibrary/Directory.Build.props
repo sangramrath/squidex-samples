@@ -5,17 +5,17 @@
     <Copyright>MIT</Copyright>
     <Description>ClientLibrary for Squidex Headless CMS</Description>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-	  <ImplicitUsings>enable</ImplicitUsings>
+    <ImplicitUsings>enable</ImplicitUsings>
     <IncludeSymbols>true</IncludeSymbols>
-	  <LangVersion>latest</LangVersion>
-	  <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
     <PackageIcon>logo-squared.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Squidex/squidex/</PackageProjectUrl>
     <PackageTags>Squidex HeadlessCMS</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <Version>12.7.0</Version>
+    <Version>15.1.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">

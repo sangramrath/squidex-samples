@@ -15,14 +15,6 @@ namespace Squidex.ClientLibrary;
 public interface IContentsClient<TEntity, TData> where TEntity : Content<TData> where TData : class, new()
 {
     /// <summary>
-    /// Gets the name of the app for which this client has been created.
-    /// </summary>
-    /// <value>
-    /// The name of the app for which this client has been created.
-    /// </value>
-    string AppName { get; }
-
-    /// <summary>
     /// Gets the name of the schema for which this client has been created.
     /// </summary>
     /// <value>
@@ -271,7 +263,7 @@ public interface IContentsClient<TEntity, TData> where TEntity : Content<TData> 
     /// <summary>
     /// Gets all content items in batches.
     /// </summary>
-    /// <param name="callback">The callbac that is invoked for each content item.</param>
+    /// <param name="callback">The callback that is invoked for each content item.</param>
     /// <param name="batchSize">Size of each batch.</param>
     /// <param name="context">The context object to add additonal headers to the request and change the behavior of the API when querying content items.</param>
     /// <param name="ct">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -280,6 +272,20 @@ public interface IContentsClient<TEntity, TData> where TEntity : Content<TData> 
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="callback"/> is null.</exception>
     Task GetAllAsync(Func<TEntity, Task> callback, int batchSize = 200, QueryContext? context = null,
+         CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all content items in batches.
+    /// </summary>
+    /// <param name="callback">The callback that is invoked for each content item.</param>
+    /// <param name="skip">The items to skip.</param>
+    /// <param name="context">The context object to add additonal headers to the request and change the behavior of the API when querying content items.</param>
+    /// <param name="ct">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+    /// <returns>
+    /// The task for completion.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="callback"/> is null.</exception>
+    Task StreamAllAsync(Func<TEntity, Task> callback, int skip = 0, QueryContext? context = null,
          CancellationToken ct = default);
 
     /// <summary>
@@ -309,22 +315,6 @@ public interface IContentsClient<TEntity, TData> where TEntity : Content<TData> 
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="id"/> is empty.</exception>
     Task<TEntity> GetAsync(string id, long version, QueryContext? context = null,
-         CancellationToken ct = default);
-
-    /// <summary>
-    /// Gets a content item by ID and version.
-    /// </summary>
-    /// <param name="id">The ID of the content item. Cannot be null or empty.</param>
-    /// <param name="version">The version of the content.</param>
-    /// <param name="context">The context object to add additonal headers to the request and change the behavior of the API when querying content items.</param>
-    /// <param name="ct">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-    /// <returns>
-    /// The content item or null if not found.
-    /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="id"/> is empty.</exception>
-    [Obsolete("Use GetAsync with version.")]
-    Task<TData> GetDataAsync(string id, int version, QueryContext? context = null,
          CancellationToken ct = default);
 
     /// <summary>

@@ -18,9 +18,11 @@ namespace CodeGeneration;
 
 public static class Program
 {
-    public static void Main()
+    public static async Task Main()
     {
-        var document = OpenApiDocument.FromUrlAsync("https://localhost:5001/api/swagger/v1/swagger.json").Result;
+        var document = await OpenApiDocument.FromUrlAsync("https://localhost:5001/api/swagger/v1/swagger.json");
+
+        SchemaCleaner.Clean(document);
 
         var generatorSettings = new CSharpClientGeneratorSettings();
         generatorSettings.ExceptionClass = "SquidexManagementException";
@@ -40,13 +42,14 @@ public static class Program
         generatorSettings.GenerateClientInterfaces = true;
         generatorSettings.UseBaseUrl = false;
 
-        var codeGenerator = new CSharpClientGenerator(document, generatorSettings);
+        var sourceCode =
+            new CSharpClientGenerator(document, generatorSettings)
+                .GenerateFile();
 
-        var code = codeGenerator.GenerateFile();
+        // Use a static version to keep the changes low.
+        sourceCode = sourceCode.Replace("13.18.2.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v10.0.0.0))", "13.17.0.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v9.0.0.0))");
 
-        code = code.Replace("13.18.2.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v10.0.0.0))", "13.17.0.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v9.0.0.0))");
-
-        File.WriteAllText(@"..\..\..\..\Squidex.ClientLibrary\Management\Generated.cs", code);
+        File.WriteAllText(@"..\..\..\..\Squidex.ClientLibrary\Management\Generated.cs", sourceCode);
     }
 
     public sealed class ValueGenerator : CSharpValueGenerator

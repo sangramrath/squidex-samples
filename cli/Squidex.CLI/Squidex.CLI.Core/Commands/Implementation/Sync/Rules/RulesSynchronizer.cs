@@ -6,6 +6,7 @@
 // ==========================================================================
 
 using Squidex.CLI.Commands.Implementation.FileSystem;
+using Squidex.CLI.Commands.Implementation.Utils;
 using Squidex.ClientLibrary;
 using Squidex.ClientLibrary.Management;
 
@@ -17,6 +18,8 @@ public sealed class RulesSynchronizer : ISynchronizer
     private readonly ILogger log;
 
     public string Name => "Rules";
+
+    public string Description => "Synchronizes all rules, but not rule events.";
 
     public RulesSynchronizer(ILogger log)
     {
@@ -35,7 +38,7 @@ public sealed class RulesSynchronizer : ISynchronizer
 
     public async Task ExportAsync(ISyncService sync, SyncOptions options, ISession session)
     {
-        var current = await session.Rules.GetRulesAsync();
+        var current = await session.Client.ExtendableRules.GetRulesAsync();
 
         await MapSchemaIdsToNamesAsync(session, current);
 
@@ -87,7 +90,7 @@ public sealed class RulesSynchronizer : ISynchronizer
             return;
         }
 
-        var current = await session.Rules.GetRulesAsync();
+        var current = await session.Client.ExtendableRules.GetRulesAsync();
 
         if (!current.Items.HasDistinctNames(x => x.Name))
         {
@@ -105,7 +108,7 @@ public sealed class RulesSynchronizer : ISynchronizer
                 {
                     await log.DoSafeAsync($"Rule '{name}' deleting", async () =>
                     {
-                        await session.Rules.DeleteRuleAsync(rule.Id);
+                        await session.Client.ExtendableRules.DeleteRuleAsync(rule.Id);
 
                         rulesByName.Remove(name);
                     });
@@ -131,7 +134,7 @@ public sealed class RulesSynchronizer : ISynchronizer
 
                 var request = newRule.ToCreate();
 
-                var created = await session.Rules.CreateRuleAsync(request);
+                var created = await session.Client.ExtendableRules.CreateRuleAsync(request);
 
                 rulesByName[newRule.Name] = created;
             });
@@ -150,7 +153,7 @@ public sealed class RulesSynchronizer : ISynchronizer
             {
                 var request = newRule.ToUpdate();
 
-                rule = await session.Rules.UpdateRuleAsync(rule.Id, request);
+                rule = await session.Client.ExtendableRules.UpdateRuleAsync(rule.Id, request);
 
                 return rule.Version;
             });
@@ -161,7 +164,7 @@ public sealed class RulesSynchronizer : ISynchronizer
                 {
                     await log.DoVersionedAsync($"Rule '{newRule.Name}' enabling", rule.Version, async () =>
                     {
-                        var result = await session.Rules.EnableRuleAsync(rule.Id);
+                        var result = await session.Client.ExtendableRules.EnableRuleAsync(rule.Id);
 
                         return result.Version;
                     });
@@ -170,7 +173,7 @@ public sealed class RulesSynchronizer : ISynchronizer
                 {
                     await log.DoVersionedAsync($"Rule '{newRule.Name}' disabling", rule.Version, async () =>
                     {
-                        var result = await session.Rules.DisableRuleAsync(rule.Id);
+                        var result = await session.Client.ExtendableRules.DisableRuleAsync(rule.Id);
 
                         return result.Version;
                     });
@@ -181,37 +184,44 @@ public sealed class RulesSynchronizer : ISynchronizer
 
     private async Task MapSchemaIdsToNamesAsync(ISession session, ExtendableRules current)
     {
-        var schemas = await session.Schemas.GetSchemasAsync(session.App);
+        var schemas = await session.Client.Schemas.GetSchemasAsync();
 
         var map = schemas.Items.ToDictionary(x => x.Id, x => x.Name);
 
         foreach (var rule in current.Items)
         {
-            if (rule.Trigger is ContentChangedRuleTriggerDto contentTrigger && contentTrigger.Schemas != null)
+            if (rule.Trigger is ContentChangedRuleTriggerDto contentTrigger)
             {
-                MapSchemas(contentTrigger, map);
+                MapSchemas(contentTrigger.Schemas, map);
+                MapSchemas(contentTrigger.ReferencedSchemas, map);
             }
         }
     }
 
     private async Task MapSchemaNamesToIdsAsync(ISession session, List<RuleModel> models)
     {
-        var schemas = await session.Schemas.GetSchemasAsync(session.App);
+        var schemas = await session.Client.Schemas.GetSchemasAsync();
 
         var map = schemas.Items.ToDictionary(x => x.Name, x => x.Id);
 
         foreach (var newRule in models)
         {
-            if (newRule.Trigger is ContentChangedRuleTriggerDto contentTrigger && contentTrigger.Schemas != null)
+            if (newRule.Trigger is ContentChangedRuleTriggerDto contentTrigger)
             {
-                MapSchemas(contentTrigger, map);
+                MapSchemas(contentTrigger.Schemas, map);
+                MapSchemas(contentTrigger.ReferencedSchemas, map);
             }
         }
     }
 
-    private void MapSchemas(ContentChangedRuleTriggerDto dto, Dictionary<string, string> schemaMap)
+    private void MapSchemas(List<SchemaCondition>? schemas, Dictionary<string, string> schemaMap)
     {
-        foreach (var schema in dto.Schemas)
+        if (schemas == null)
+        {
+            return;
+        }
+
+        foreach (var schema in schemas)
         {
             if (!schemaMap.TryGetValue(schema.SchemaId!, out var found))
             {

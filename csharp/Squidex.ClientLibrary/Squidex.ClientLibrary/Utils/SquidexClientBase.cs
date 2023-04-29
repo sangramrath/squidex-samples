@@ -16,103 +16,68 @@ namespace Squidex.ClientLibrary.Utils;
 /// <seealso cref="IDisposable" />
 public abstract class SquidexClientBase
 {
-    private readonly IHttpClientProvider httpClientProvider;
-
     /// <summary>
-    /// Gets the name of the App.
+    /// Gets the options of the <see cref="SquidexClient"/>.
     /// </summary>
     /// <value>
-    /// The name of the App.
-    /// </value>
-    public string AppName { get; }
-
-    /// <summary>
-    /// Gets the options of the <see cref="SquidexClientManager"/>.
-    /// </summary>
-    /// <value>
-    /// The options of the <see cref="SquidexClientManager"/>.
+    /// The options of the <see cref="SquidexClient"/>.
     /// </value>
     public SquidexOptions Options { get; }
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-    protected internal SquidexClientBase(SquidexOptions options, string appName, IHttpClientProvider httpClientProvider)
+    protected internal SquidexClientBase(SquidexOptions options)
     {
         Guard.NotNull(options, nameof(options));
-        Guard.NotNullOrEmpty(appName, nameof(appName));
-        Guard.NotNull(httpClientProvider, nameof(httpClientProvider));
-
-        // The app name can be different from the options app name.
-        AppName = appName;
 
         // Just pass in the options to have direct access to them.
         Options = options;
-
-        this.httpClientProvider = httpClientProvider;
     }
 
     protected internal async Task RequestAsync(HttpMethod method, string path, HttpContent? content, QueryContext? context,
         CancellationToken ct)
     {
-        var httpClient = httpClientProvider.Get();
-        try
+        var httpClient = Options.ClientProvider.Get();
+
+        using (var request = BuildRequest(method, path, content, context))
         {
-            using (var request = BuildRequest(method, path, content, context))
+            using (var response = await httpClient.SendAsync(request, ct))
             {
-                using (var response = await httpClient.SendAsync(request, ct))
-                {
-                    await EnsureResponseIsValidAsync(response);
-                }
+                await EnsureResponseIsValidAsync(response);
             }
-        }
-        finally
-        {
-            httpClientProvider.Return(httpClient);
         }
     }
 
     protected internal async Task<Stream> RequestStreamAsync(HttpMethod method, string path, HttpContent? content, QueryContext? context,
         CancellationToken ct)
     {
-        var httpClient = httpClientProvider.Get();
-        try
-        {
-            using (var request = BuildRequest(method, path, content, context))
-            {
-                var response = await httpClient.SendAsync(request, ct);
+        var httpClient = Options.ClientProvider.Get();
 
-                await EnsureResponseIsValidAsync(response);
-#if NET5_0_OR_GREATER
-                return await response.Content.ReadAsStreamAsync(ct);
-#else
-                return await response.Content.ReadAsStreamAsync();
-#endif
-            }
-        }
-        finally
+        using (var request = BuildRequest(method, path, content, context))
         {
-            httpClientProvider.Return(httpClient);
+            var response = await httpClient.SendAsync(request, ct);
+
+            await EnsureResponseIsValidAsync(response);
+#if NET5_0_OR_GREATER
+            return await response.Content.ReadAsStreamAsync(ct);
+#else
+            return await response.Content.ReadAsStreamAsync();
+#endif
         }
     }
 
     protected internal async Task<T> RequestJsonAsync<T>(HttpMethod method, string path, HttpContent? content, QueryContext? context,
         CancellationToken ct)
     {
-        var httpClient = httpClientProvider.Get();
-        try
-        {
-            using (var request = BuildRequest(method, path, content, context))
-            {
-                using (var response = await httpClient.SendAsync(request, ct))
-                {
-                    await EnsureResponseIsValidAsync(response);
+        var httpClient = Options.ClientProvider.Get();
 
-                    return (await response.Content.ReadAsJsonAsync<T>())!;
-                }
-            }
-        }
-        finally
+        using (var request = BuildRequest(method, path, content, context))
         {
-            httpClientProvider.Return(httpClient);
+            using (var response = await httpClient.SendAsync(request, ct))
+            {
+                await EnsureResponseIsValidAsync(response);
+
+                return (await response.Content.ReadAsJsonAsync<T>())!;
+            }
         }
     }
 
@@ -125,7 +90,6 @@ public abstract class SquidexClientBase
             request.Content = content;
         }
 
-        request.Headers.TryAddWithoutValidation(SpecialHeaders.AppName, AppName);
         context?.AddToHeaders(request.Headers);
 
         return request;

@@ -13,6 +13,7 @@ using FluentValidation;
 using Squidex.CLI.Commands.Implementation;
 using Squidex.CLI.Commands.Implementation.ImExport;
 using Squidex.CLI.Commands.Implementation.TestData;
+using Squidex.CLI.Commands.Implementation.Utils;
 using Squidex.CLI.Configuration;
 using Squidex.ClientLibrary;
 
@@ -41,8 +42,8 @@ public partial class App
         {
             var session = configuration.StartSession(arguments.App);
 
-            var taskForSchema = session.Schemas.GetSchemaAsync(session.App, arguments.Schema);
-            var taskForLanguages = session.Apps.GetLanguagesAsync(session.App);
+            var taskForSchema = session.Client.Schemas.GetSchemaAsync(arguments.Schema);
+            var taskForLanguages = session.Client.Apps.GetLanguagesAsync();
 
             await Task.WhenAll(
                 taskForSchema,

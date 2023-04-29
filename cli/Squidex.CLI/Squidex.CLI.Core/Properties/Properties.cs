@@ -5,9 +5,7 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-namespace Squidex.ClientLibrary;
+using System.Runtime.CompilerServices;
 
-internal static class SpecialHeaders
-{
-    public const string AppName = "X-App";
-}
+[assembly: InternalsVisibleTo("sq")]
+[assembly: InternalsVisibleTo("Squidex.CLI")]
